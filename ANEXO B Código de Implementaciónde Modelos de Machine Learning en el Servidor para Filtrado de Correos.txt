@@ -1,0 +1,604 @@
+# Importar librerias
+import csv  # Importa el módulo csv para trabajar con archivos CSV
+import numpy as np  # Importa NumPy para operaciones numéricas eficientes
+import pandas as pd  # Importa Pandas para manipulación y análisis de datos
+import string  # Importa el módulo string para manipulaciones de cadenas de texto
+import seaborn as sns  # Importa Seaborn para visualización de datos estadísticos
+import matplotlib.pyplot as plt  # Importa Matplotlib para visualización de gráficos
+from wordcloud import WordCloud  # Importa WordCloud para visualizar nubes de palabras
+import nltk  # Importa NLTK (Natural Language Toolkit) para procesamiento de lenguaje natural
+from nltk.corpus import stopwords  # Importa el corpus de stopwords de NLTK
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer  # Importa clases para vectorización de texto
+from sklearn.tree import DecisionTreeClassifier  # Importa el clasificador de árbol de decisión de sklearn
+from sklearn.model_selection import GridSearchCV, train_test_split, StratifiedKFold, cross_val_score, learning_curve              # Importa funciones y clases para evaluación de modelos
+from sklearn.metrics import roc_auc_score, f1_score, confusion_matrix  # Importa métricas de evaluación de modelos
+from sklearn.naive_bayes import MultinomialNB  # Importa el clasificador Naive Bayes multinomial de sklearn
+from sklearn.neighbors import KNeighborsClassifier  # Importa el clasificador KNN de sklearn
+
+# Cargar los datos en Google Colab
+from google.colab import files  # Importa el módulo files desde google.colab para cargar archivos
+uploaded = files.upload()  # Utiliza la función upload() para cargar archivos desde el sistema local al entorno de Google Colab
+# Cargar datos desde un archivo CSV llamado "dataset.csv" con codificación 'latin-1'.
+datos = pd.read_csv("dataset.csv", encoding='latin-1')
+
+# Seleccionar solo las columnas 'v1' (Categoría) y 'v2' (Mensaje).
+datos = datos[["v1", "v2"]]
+
+# Renombrar las columnas 'v1' y 'v2' a 'Categoria' y 'Mensaje', respectivamente.
+datos.columns = ["Categoria", "Mensaje"]
+
+# Mostrar las primeras filas del DataFrame.
+datos.head(10500)
+
+# Contar el número de ocurrencias de cada valor único en la columna 'Categoria'.
+datos["Categoria"].value_counts()
+
+# Cuenta las ocurrencias de cada valor único en la columna 'Categoria'
+# y crea un gráfico de barras para visualizar la distribución de las categorías.
+datos['Categoria'].value_counts().plot(kind='bar')
+# Etiqueta del eje x del gráfico
+plt.xlabel('Categoria')
+# Etiqueta del eje y del gráfico
+plt.ylabel('Frecuencia')
+# Título del gráfico
+plt.title('Distribución de Categorías')
+# Muestra el gráfico
+plt.show()
+
+# Imprime los nombres de las columnas del Dataset 'datos'.
+datos.columns
+
+# Imprime la forma (número de filas y columnas) del Dataset 'datos'.
+datos.shape
+
+# Descarga los recursos necesarios para el tokenizador 'punkt' de NLTK.
+nltk.download("punkt")
+
+# Importa la librería 'warnings' y filtra las advertencias para ignorarlas.
+import warnings
+warnings.filterwarnings("ignore")
+
+import nltk
+
+# Forzar la descarga del recurso punkt
+nltk.download('punkt')
+
+import os
+from nltk.data import find
+
+# Verificar si 'punkt' está disponible
+try:
+    find('tokenizers/punkt')
+    print("El recurso 'punkt' está disponible.")
+except LookupError:
+    print("El recurso 'punkt' no está disponible.")
+
+import nltk
+nltk.download('punkt_tab')
+
+import nltk
+
+# Descargar el recurso necesario para tokenización
+nltk.download('punkt')
+
+# Lista de tokens para mensajes de spam
+spam_tokens = []  # Inicializa una lista para almacenar los tokens de los mensajes de spam
+for mensaje in datos[datos['Categoria'] == 'spam'].Mensaje:  # Itera sobre los mensajes etiquetados como 'spam' en el DataFrame
+    mensaje = mensaje.lower()  # Convierte el mensaje a minúsculas
+    tokens = nltk.word_tokenize(mensaje)  # Tokeniza el mensaje
+    spam_tokens.extend(tokens)  # Agrega los tokens a la lista de tokens de spam
+
+# Lista de tokens para mensajes de ham
+ham_tokens = []  # Inicializa una lista para almacenar los tokens de los mensajes de ham
+for mensaje in datos[datos['Categoria'] == 'ham'].Mensaje:  # Itera sobre los mensajes etiquetados como 'ham' en el DataFrame
+    mensaje = mensaje.lower()  # Convierte el mensaje a minúsculas
+    tokens = nltk.word_tokenize(mensaje)  # Tokeniza el mensaje
+    ham_tokens.extend(tokens)  # Agrega los tokens a la lista de tokens de ham
+
+# Lista de tokens para mensajes de ham_es
+ham_es_tokens = []  # Inicializa una lista para almacenar los tokens de los mensajes de ham_es
+for mensaje in datos[datos['Categoria'] == 'ham_es'].Mensaje:  # Itera sobre los mensajes etiquetados como 'ham_es' en el DataFrame
+    mensaje = mensaje.lower()  # Convierte el mensaje a minúsculas
+    tokens = nltk.word_tokenize(mensaje)  # Tokeniza el mensaje
+    ham_es_tokens.extend(tokens)  # Agrega los tokens a la lista de tokens de ham_es
+
+# Lista de tokens para mensajes de spam_es
+spam_es_tokens = []  # Inicializa una lista para almacenar los tokens de los mensajes de spam_es
+for mensaje in datos[datos['Categoria'] == 'spam_es'].Mensaje:  # Itera sobre los mensajes etiquetados como 'spam_es' en el DataFrame
+    mensaje = mensaje.lower()  # Convierte el mensaje a minúsculas
+    tokens = nltk.word_tokenize(mensaje)  # Tokeniza el mensaje
+    spam_es_tokens.extend(tokens)  # Agrega los tokens a la lista de tokens de spam_es
+
+# Imprime los tokens para spam
+print("Tokens para spam:")
+print(spam_tokens)
+
+# Imprime los tokens para ham
+print("\nTokens para ham:")
+print(ham_tokens)
+
+# Imprime los tokens para spam
+print("Tokens para spam en español:")
+print(spam_es_tokens)
+
+# Imprime los tokens para ham
+print("\nTokens para ham en español:")
+print(ham_es_tokens)
+
+import matplotlib.pyplot as plt  # Importa la librería matplotlib para visualización de gráficos
+
+# Convertir las listas de tokens a cadenas
+spam_text = ' '.join(spam_tokens)  # Convierte la lista de tokens de spam a una cadena de texto
+ham_text = ' '.join(ham_tokens)  # Convierte la lista de tokens de ham a una cadena de texto
+spam_es_text = ' '.join(spam_es_tokens)  # Convierte la lista de tokens de spam a una cadena de texto
+ham_es_text = ' '.join(ham_es_tokens)  # Convierte la lista de tokens de ham a una cadena de texto
+
+# Crear la nube de palabras para spam
+nube_palabras_spam = WordCloud(width=800, height=800,
+                               background_color='white',
+                               stopwords=None,
+                               min_font_size=10).generate(spam_text)
+# Crear la nube de palabras para ham
+nube_palabras_ham = WordCloud(width=800, height=800,
+                              background_color='white',
+                              stopwords=None,
+                              min_font_size=10).generate(ham_text)
+# Crear la nube de palabras para spam en español
+nube_palabras_spam_es = WordCloud(width=800, height=800,
+                               background_color='white',
+                               stopwords=None,
+                               min_font_size=10).generate(spam_es_text)
+# Crear la nube de palabras para ham en español
+nube_palabras_ham_es = WordCloud(width=800, height=800,
+                              background_color='white',
+                              stopwords=None,
+                              min_font_size=10).generate(ham_es_text)
+
+# Mostrar la nube de palabras para los mensajes de sham
+plt.figure(figsize=(7, 5))  # Crea una figura con un tamaño de 8x8 pulgadas
+plt.imshow(nube_palabras_spam, aspect='auto')  # Muestra la nube de palabras para los mensajes de spam
+plt.axis("off")  # Desactiva los ejes del gráfico
+plt.title('Nube de Palabras para Mensajes de Spam')  # Establece el título del gráfico
+plt.show()  # Muestra el gráfico
+
+# Mostrar la nube de palabras para los mensajes de ham
+plt.figure(figsize=(7, 5))  # Crea una figura con un tamaño de 8x8 pulgadas
+plt.imshow(nube_palabras_ham, aspect='auto')  # Muestra la nube de palabras para los mensajes de ham
+plt.axis("off")  # Desactiva los ejes del gráfico
+plt.title('Nube de Palabras para Mensajes de Ham')  # Establece el título del gráfico
+plt.show()  # Muestra el gráfico
+
+# Mostrar la nube de palabras para los mensajes de ham
+plt.figure(figsize=(7, 5))  # Crea una figura con un tamaño de 8x8 pulgadas
+plt.imshow(nube_palabras_ham_es, aspect='auto')  # Muestra la nube de palabras para los mensajes de ham español
+plt.axis("off")  # Desactiva los ejes del gráfico
+plt.title('Nube de Palabras para Mensajes de Ham en Español')  # Establece el título del gráfico
+plt.show()  # Muestra el gráfico
+
+# Mostrar la nube de palabras para los mensajes de spam
+plt.figure(figsize=(7, 5))  # Crea una figura con un tamaño de 8x8 pulgadas
+plt.imshow(nube_palabras_spam_es, aspect='auto')  # Muestra la nube de palabras para los mensajes de spam español
+plt.axis("off")  # Desactiva los ejes del gráfico
+plt.title('Nube de Palabras para Mensajes de Spam en Español')  # Establece el título del gráfico
+plt.show()  # Muestra el gráfico
+
+# Asignar etiquetas numéricas a la columna 'Categoria' y almacenarlas en una nueva columna llamada 'etiqueta'
+datos['etiqueta'] = datos['Categoria'].map({'ham': 0, 'spam': 1, 'spam_es': 1, 'ham_es': 0})
+
+# Imprimir las primeras 15 filas del DataFrame 'datos' para verificar los cambios
+print(datos.head(10000))
+
+import string  # Importa el módulo string para manipulaciones de cadenas de texto
+from nltk.corpus import stopwords  # Importa la lista de stopwords de NLTK
+from nltk.tokenize import word_tokenize  # Importa la función word_tokenize de NLTK para tokenizar palabras
+from nltk.stem import PorterStemmer  # Importa el algoritmo de stemming PorterStemmer de NLTK
+
+def Mensaje_procesado(Mensaje):
+    # Eliminar signos de puntuación
+    Mensaje = Mensaje.translate(str.maketrans('', '', string.punctuation))
+
+    # Tokenizar el mensaje
+    tokens = word_tokenize(Mensaje)
+
+    # Inicializar el stemmer
+    stemmer = PorterStemmer()
+
+    # Eliminar stopwords y lematizar
+    Mensaje = [stemmer.stem(word.lower()) for word in tokens if word.lower() not in stopwords.words('english','spanish')]
+
+    return " ".join(Mensaje)
+
+import string
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+
+def Mensaje_procesado(Mensaje):
+    # Eliminar signos de puntuación
+    Mensaje = Mensaje.translate(str.maketrans('', '', string.punctuation))
+
+    # Tokenizar el mensaje
+    tokens = word_tokenize(Mensaje)
+
+    # Eliminar stopwords sin lematizar
+    Mensaje = [word.lower() for word in tokens if word.lower() not in stopwords.words('english','spanish')]
+
+    return " ".join(Mensaje)
+
+import nltk
+nltk.download('stopwords')
+
+# Asegura que todos los datos sean de tipo string y aplica la función 'mensaje_procesado' a la columna 'Mensaje'
+datos['Mensaje'] = datos['Mensaje'].astype(str).apply(Mensaje_procesado)
+
+# Imprime las primeras 10 filas del DataFrame 'datos' para verificar los cambios
+datos.head(10500)
+
+# Crear un DataFrame con los datos procesados
+datos_procesados = pd.DataFrame({'Mensaje': datos['Mensaje'], 'Categoria': datos['etiqueta']})
+
+# Imprimir las primeras 10 filas del DataFrame 'datos_procesados' para verificar los cambios
+datos_procesados.head(7000)
+
+from collections import Counter  # Importar la clase Counter
+
+# Contar cuántas veces una palabra aparece en el dataset dentro de la columna 'Mensaje'
+total_counts = Counter()
+for mensaje in datos['Mensaje']:
+    for palabra in mensaje.split():
+        total_counts[palabra] += 1
+
+print("Total de palabras en el dataset:", len(total_counts))
+
+# Ordenar en forma decreciente según la frecuencia de las palabras y mostrar las primeras 10
+palabras_ordenadas = sorted(total_counts.items(), key=lambda x: x[1], reverse=True)
+print([palabra for palabra, _ in palabras_ordenadas[:10]])
+
+# Se mapean las palabras a un índice
+palabra_tam = len(palabras_ordenadas)  # Obtiene la longitud de la lista de palabras ordenadas
+indice_palabra = {}  # Inicializa un diccionario vacío para mapear palabras a índices
+
+# Itera sobre las palabras ordenadas enumeradas (índice, palabra) y asigna cada palabra a su índice en el diccionario
+for indice, palabra in enumerate(palabras_ordenadas):
+    indice_palabra[palabra] = indice
+
+# Se vuelca texto al vector
+def mensaje_a_vector(texto):
+    vector_mensaje = np.zeros(palabra_tam)  # Crea un vector de ceros del tamaño del vocabulario
+    for palabra in texto.split(" "):  # Itera sobre cada palabra en el texto
+        indice = indice_palabra.get(palabra)  # Obtiene el índice de la palabra en el vocabulario
+        if indice is not None:  # Verifica si la palabra está en el vocabulario
+            vector_mensaje[indice] += 1  # Incrementa el conteo de la palabra en el vector
+    return np.array(vector_mensaje)  # Convierte el vector a un array numpy
+
+vector = np.zeros((len(datos), palabra_tam), dtype=np.int_)  # Crea una matriz de ceros para almacenar los vectores de palabras
+for i, (_, mensaje_) in enumerate(datos['Mensaje'].items()):  # Itera sobre cada mensaje en el DataFrame
+    vector[i] = mensaje_a_vector(mensaje_)  # Convierte el mensaje a un vector y lo almacena en la matriz
+
+# Devuelve la forma del array 'vector', que contiene los vectores de palabras para cada mensaje en 'datos'.
+vector.shape
+
+# Importar la clase TfidfVectorizer de sklearn para convertir datos de texto en vectores utilizando TF-IDF
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Utilizar TfidfVectorizer para transformar los datos de texto en vectores TF-IDF y almacenar el resultado en 'vectors'
+vectors = TfidfVectorizer().fit_transform(datos['Mensaje'])
+
+# Devolver la forma de la matriz de vectores 'vectors', que representa la cantidad de documentos (filas) y características (columnas)
+vectors.shape
+
+# Importar la función train_test_split de scikit-learn
+from sklearn.model_selection import train_test_split
+
+# Dividir el conjunto de datos en set de entrenamiento y prueba
+X_entrenamiento, X_prueba, y_entrenamiento, y_prueba = train_test_split(vectors, datos['etiqueta'], test_size=0.20, random_state=100)
+
+import matplotlib.pyplot as plt
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import GridSearchCV
+
+# Definir los parámetros a ajustar y sus valores
+parametros = {'n_neighbors': [5, 10, 20, 50, 100]}  # Definir una lista de valores para el hiperparámetro n_neighbors
+
+# Inicializar el modelo de clasificador KNeighbors
+modelo = KNeighborsClassifier()  # Inicializar un clasificador KNeighbors sin ningún hiperparámetro especificado
+
+# Realizar la búsqueda en cuadrícula
+grid_search = GridSearchCV(modelo, parametros, cv=5)  # Inicializar un objeto GridSearchCV con el modelo y parámetros definidos
+grid_search.fit(X_entrenamiento, y_entrenamiento)  # Ajustar el modelo utilizando búsqueda en cuadrícula con los datos de entrenamiento
+
+# Obtener los resultados de la búsqueda en cuadrícula
+resultados = grid_search.cv_results_
+
+# Extraer las puntuaciones de validación media y los valores de los parámetros
+puntuaciones_medias = resultados['mean_test_score']
+valores_parametros = parametros['n_neighbors']
+
+# Obtener los mejores hiperparámetros encontrados durante la búsqueda en cuadrícula
+mejores_hiperparametros = grid_search.best_params_
+
+# Imprimir los mejores hiperparámetros encontrados
+print("Mejores hiperparámetros encontrados:", mejores_hiperparametros)  # Imprimir los mejores hiperparámetros
+
+print("Puntuaciones: ")
+print(puntuaciones_medias)
+
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Inicializar el modelo KNN
+clasificador_knn = KNeighborsClassifier(n_neighbors=50)
+
+# Entrenar el modelo KNN con los datos de entrenamiento
+clasificador_knn.fit(X_entrenamiento, y_entrenamiento)
+
+# Hacer predicciones en el conjunto de prueba utilizando el modelo entrenado
+predicciones_knn = clasificador_knn.predict(X_prueba)
+predicciones_knn_ent = clasificador_knn.predict(X_entrenamiento)
+
+# Imprimir el informe de clasificación y la exactitud
+print('KNN Pruebas')
+print(classification_report(y_prueba, predicciones_knn))
+print()
+print('Exactitud:', accuracy_score(y_prueba, predicciones_knn))
+
+# Imprimir el informe de clasificación y la exactitud
+print('KNN Entrenamiento')
+print(classification_report(y_entrenamiento, predicciones_knn_ent))
+print()
+print('Exactitud:', accuracy_score(y_entrenamiento, predicciones_knn_ent))
+
+# Calcular y visualizar la matriz de confusión
+cm = confusion_matrix(y_prueba, predicciones_knn)
+ce = confusion_matrix(y_entrenamiento, predicciones_knn_ent)
+
+plt.figure(figsize=(5, 5))
+sns.heatmap(ce, annot=True, linewidths=0.5, linecolor="red", fmt=".0f")
+plt.xlabel("y_predicción")
+plt.ylabel("y_real")
+plt.title('Matriz de Confusión Entrenamiento')
+plt.show()
+
+plt.figure(figsize=(5, 5))
+sns.heatmap(cm, annot=True, linewidths=0.5, linecolor="red", fmt=".0f")
+plt.xlabel("y_predicción")
+plt.ylabel("y_real")
+plt.title('Matriz de Confusión Pruebas')
+plt.show()
+
+from sklearn.metrics import roc_curve, roc_auc_score
+import matplotlib.pyplot as plt
+
+# Obtener las probabilidades de las clases positivas
+probs = clasificador_knn.predict_proba(X_prueba)[:, 1]
+
+# Calcular la tasa de verdaderos positivos y la tasa de falsos positivos
+fpr, tpr, _ = roc_curve(y_prueba, probs)
+
+# Calcular el área bajo la curva ROC (AUC)
+roc_auc = roc_auc_score(y_prueba, probs)
+
+# Graficar la curva ROC
+plt.figure(figsize=(8, 6))
+plt.plot(fpr, tpr, color='blue', lw=2, label='Curva ROC (AUC = %0.2f)' % roc_auc)
+plt.plot([0, 1], [0, 1], color='red', linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('Tasa de Falsos Positivos')
+plt.ylabel('Tasa de Verdaderos Positivos')
+plt.title('Curva ROC')
+plt.legend(loc="lower right")
+plt.show()
+
+
+import matplotlib.pyplot as plt
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.model_selection import GridSearchCV
+
+# Definir los parámetros a ajustar y sus valores para el clasificador Naive Bayes
+parametros_nb = {'alpha': [0.1, 0.2, 0.5, 1.0]}  # Definir una lista de valores para el hiperparámetro alpha
+
+# Inicializar el modelo de clasificador Naive Bayes
+modelo_nb = MultinomialNB()  # Inicializar un clasificador Naive Bayes sin ningún hiperparámetro especificado
+
+# Realizar la búsqueda en cuadrícula para el clasificador Naive Bayes
+grid_search_nb = GridSearchCV(modelo_nb, parametros_nb, cv=5)  # Inicializar un objeto GridSearchCV para el clasificador Naive Bayes
+grid_search_nb.fit(X_entrenamiento, y_entrenamiento)  # Ajustar el modelo de clasificador Naive Bayes utilizando búsqueda en cuadrícula con los datos de entrenamiento
+
+# Obtener los resultados de la búsqueda en cuadrícula para el clasificador Naive Bayes
+resultados_nb = grid_search_nb.cv_results_
+
+# Extraer las puntuaciones de validación media y los valores de los parámetros para el clasificador Naive Bayes
+puntuaciones_medias_nb = resultados_nb['mean_test_score']
+valores_parametros_nb = parametros_nb['alpha']
+
+
+# Obtener los mejores hiperparámetros encontrados para el clasificador Naive Bayes
+mejores_hiperparametros_nb = grid_search_nb.best_params_
+
+# Imprimir los mejores hiperparámetros encontrados para el clasificador Naive Bayes
+print("Mejores hiperparámetros para Naive Bayes encontrados:", mejores_hiperparametros_nb)  # Imprimir los mejores hiperparámetros para el clasificador Naive Bayes
+print(puntuaciones_medias_nb)
+
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Inicializar el modelo Naive Bayes
+clasificador_nb = MultinomialNB(alpha=0.2)
+
+# Entrenar el modelo Naive Bayes con los datos de entrenamiento
+clasificador_nb.fit(X_entrenamiento, y_entrenamiento)
+
+# Hacer predicciones en el conjunto de prueba utilizando el modelo entrenado
+predicciones_nb = clasificador_nb.predict(X_prueba)
+predicciones_nb_ent = clasificador_nb.predict(X_entrenamiento)
+
+# Imprimir el informe de clasificación y la exactitud
+print('Naive Bayes Pruebas')
+print(classification_report(y_prueba, predicciones_nb))
+print()
+print('Exactitud:', accuracy_score(y_prueba, predicciones_nb))
+
+# Imprimir el informe de clasificación y la exactitud
+print('Naive Bayes Entrenamiento')
+print(classification_report(y_entrenamiento, predicciones_nb_ent))
+print()
+print('Exactitud:', accuracy_score(y_entrenamiento, predicciones_nb_ent))
+
+# Calcular y visualizar la matriz de confusión
+cm = confusion_matrix(y_prueba, predicciones_nb)
+ce = confusion_matrix(y_entrenamiento, predicciones_nb_ent)
+
+plt.figure(figsize=(5, 5))
+sns.heatmap(ce, annot=True, linewidths=0.5, linecolor="red", fmt=".0f")
+plt.xlabel("y_predicción")
+plt.ylabel("y_real")
+plt.title('Matriz de Confusión Entrenamiento')
+plt.show()
+
+plt.figure(figsize=(5, 5))
+sns.heatmap(cm, annot=True, linewidths=0.5, linecolor="red", fmt=".0f")
+plt.xlabel("y_predicción")
+plt.ylabel("y_real")
+plt.title('Matriz de Confusión Pruebas')
+plt.show()
+
+from sklearn.metrics import roc_curve, roc_auc_score
+import matplotlib.pyplot as plt
+
+# Obtener las probabilidades de las clases positivas
+probs = clasificador_nb.predict_proba(X_prueba)[:, 1]
+
+# Calcular la tasa de verdaderos positivos y la tasa de falsos positivos
+fpr, tpr, _ = roc_curve(y_prueba, probs)
+
+# Calcular el área bajo la curva ROC (AUC)
+roc_auc = roc_auc_score(y_prueba, probs)
+
+# Graficar la curva ROC
+plt.figure(figsize=(8, 6))
+plt.plot(fpr, tpr, color='blue', lw=2, label='Curva ROC (AUC = %0.2f)' % roc_auc)
+plt.plot([0, 1], [0, 1], color='red', linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('Tasa de Falsos Positivos')
+plt.ylabel('Tasa de Verdaderos Positivos')
+plt.title('Curva ROC')
+plt.legend(loc="lower right")
+plt.show()
+
+import matplotlib.pyplot as plt
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import GridSearchCV
+
+# Definir los parámetros a ajustar y sus valores para el árbol de decisión
+parametros_dtc = {'min_samples_split': [2, 5, 10]}  # Definir una lista de valores para el hiperparámetro min_samples_split
+
+# Inicializar el modelo de árbol de decisión
+modelo_dtc = DecisionTreeClassifier()  # Inicializar un árbol de decisión sin ningún hiperparámetro especificado
+
+# Realizar la búsqueda en cuadrícula para el árbol de decisión
+grid_search_dtc = GridSearchCV(modelo_dtc, parametros_dtc, cv=5)  # Inicializar un objeto GridSearchCV para el árbol de decisión
+grid_search_dtc.fit(X_entrenamiento, y_entrenamiento)  # Ajustar el modelo de árbol de decisión utilizando búsqueda en cuadrícula con los datos de entrenamiento
+
+# Obtener los resultados de la búsqueda en cuadrícula para el árbol de decisión
+resultados_dtc = grid_search_dtc.cv_results_
+
+# Extraer las puntuaciones de validación media y los valores de los parámetros para el árbol de decisión
+puntuaciones_medias_dtc = resultados_dtc['mean_test_score']
+valores_parametros_dtc = parametros_dtc['min_samples_split']
+
+# Obtener los mejores hiperparámetros encontrados para el árbol de decisión
+mejores_hiperparametros_dtc = grid_search_dtc.best_params_
+
+# Imprimir los mejores hiperparámetros encontrados para el árbol de decisión
+print("Mejores hiperparámetros para Decision Tree encontrados:", mejores_hiperparametros_dtc)  # Imprimir los mejores hiperparámetros para el árbol de decisión
+print(puntuaciones_medias_dtc)
+
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Inicializar el modelo Decision Tree
+clasificador_dtc = DecisionTreeClassifier(min_samples_split=10)
+
+# Entrenar el modelo Decision Tree con los datos de entrenamiento
+clasificador_dtc.fit(X_entrenamiento, y_entrenamiento)
+
+# Hacer predicciones en el conjunto de prueba utilizando el modelo entrenado
+predicciones_dtc = clasificador_dtc.predict(X_prueba)
+predicciones_dtc_ent = clasificador_dtc.predict(X_entrenamiento)
+
+# Imprimir el informe de clasificación y la exactitud
+print('Decision Tree Prueba')
+print(classification_report(y_prueba, predicciones_dtc))
+print()
+print('Exactitud:', accuracy_score(y_prueba, predicciones_dtc))
+
+# Imprimir el informe de clasificación y la exactitud
+print('Decision Tree Entrenamiento')
+print(classification_report(y_entrenamiento, predicciones_dtc_ent))
+print()
+print('Exactitud:', accuracy_score(y_entrenamiento, predicciones_dtc_ent))
+
+# Calcular y visualizar la matriz de confusión
+cm = confusion_matrix(y_prueba, predicciones_dtc)
+ce = confusion_matrix(y_entrenamiento, predicciones_dtc_ent)
+
+plt.figure(figsize=(5, 5))
+sns.heatmap(ce, annot=True, linewidths=0.5, linecolor="red", fmt=".0f")
+plt.xlabel("y_predicción")
+plt.ylabel("y_real")
+plt.title('Matriz de Confusión Entrenamiento')
+plt.show()
+
+plt.figure(figsize=(5, 5))
+sns.heatmap(cm, annot=True, linewidths=0.5, linecolor="red", fmt=".0f")
+plt.xlabel("y_predicción")
+plt.ylabel("y_real")
+plt.title('Matriz de Confusión Pruebas')
+plt.show()
+
+from sklearn.metrics import roc_curve, roc_auc_score
+import matplotlib.pyplot as plt
+
+# Obtener las probabilidades de las clases positivas
+probs = clasificador_dtc.predict_proba(X_prueba)[:, 1]
+
+# Calcular la tasa de verdaderos positivos y la tasa de falsos positivos
+fpr, tpr, _ = roc_curve(y_prueba, probs)
+
+# Calcular el área bajo la curva ROC (AUC)
+roc_auc = roc_auc_score(y_prueba, probs)
+
+# Graficar la curva ROC
+plt.figure(figsize=(8, 6))
+plt.plot(fpr, tpr, color='blue', lw=2, label='Curva ROC (AUC = %0.2f)' % roc_auc)
+plt.plot([0, 1], [0, 1], color='red', linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('Tasa de Falsos Positivos')
+plt.ylabel('Tasa de Verdaderos Positivos')
+plt.title('Curva ROC')
+plt.legend(loc="lower right")
+plt.show()
+
+import joblib
+from google.colab import files
+
+# Guardar los modelos
+joblib.dump(clasificador_knn, 'modelo_knn.pkl')
+joblib.dump(clasificador_nb, 'modelo_nb.pkl')
+joblib.dump(clasificador_dtc, 'modelo_dtc.pkl')
+joblib.dump(tfidf_vectorizer, 'vectorizador_tfidf.pkl')
+
+# Descargar los archivos de los modelos
+files.download('modelo_knn.pkl')
+files.download('modelo_nb.pkl')
+files.download('modelo_dtc.pkl')
+files.download('vectorizador_tfidf.pkl')
