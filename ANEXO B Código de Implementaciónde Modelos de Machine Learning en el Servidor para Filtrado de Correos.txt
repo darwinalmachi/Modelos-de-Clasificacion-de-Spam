@@ -1,0 +1,170 @@
+import base64
+import email
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from sklearn.feature_extraction.text import TfidfVectorizer
+import re
+from joblib import load
+from imapclient import IMAPClient
+import threading
+import time
+
+# Cargar los modelos y el vectorizador
+clasificador_knn = load('C:/Users/HP/Desktop/modelos/modelo_nb.pkl')
+tfidf_vectorizer = load('c:/Users/HP/Desktop/modelos/vectorizador_tfidf.pkl')
+
+# Lista de usuarios y contraseñas
+usuarios = [
+    {"usuario": "darwin@utnmail.com", "contrasena": "Darwin130799"},
+    {"usuario": "carlos@utnmail.com", "contrasena": "Carlos130799"},
+    {"usuario": "juan@utnmail.com", "contrasena": "Juan130799"},
+]
+
+# Contadores globales
+contador_spam = 0
+contador_no_spam = 0
+
+# Función para predecir si un mensaje es spam o no spam
+def predecir_spam_ham(mensaje):
+    mensaje_transformado = tfidf_vectorizer.transform([mensaje])
+    prediccion = clasificador_knn.predict(mensaje_transformado)
+    return "spam" if prediccion == 1 else "no spam"
+
+# Función para enviar una notificación por correo electrónico usando SMTP
+def enviar_notificacion(correo_destino, asunto, mensaje):
+    correo_origen = "admin@utnmail.com"
+    contrasena = "Darwin130799"
+
+    msg = MIMEMultipart()
+    msg['From'] = correo_origen
+    msg['To'] = correo_destino
+    msg['Subject'] = asunto
+
+    msg.attach(MIMEText(mensaje, 'plain'))
+
+    try:
+        servidor = smtplib.SMTP('smtp.utnmail.com', 587)
+        servidor.starttls()
+        servidor.login(correo_origen, contrasena)
+        servidor.sendmail(correo_origen, correo_destino, msg.as_string())
+        servidor.quit()
+        print("Correo de notificación enviado exitosamente")
+    except Exception as e:
+        print(f"Error al enviar correo: {e}")
+
+# Decodificar el cuerpo del mensaje
+def decodificar_cuerpo(parte):
+    try:
+        if parte['Content-Transfer-Encoding'] == 'base64':
+            return base64.b64decode(parte.get_payload()).decode('utf-8', errors='ignore')
+        elif parte.get_content_type() == 'text/html':
+            texto_html = parte.get_payload(decode=True).decode('utf-8', errors='ignore')
+            return re.sub('<[^<]+?>', '', texto_html)  # Eliminar etiquetas HTML
+        else:
+            return parte.get_payload(decode=True).decode('utf-8', errors='ignore')
+    except Exception as e:
+        print(f"Error al decodificar el cuerpo del mensaje: {e}")
+        return ''
+
+# Función para procesar un nuevo correo
+def procesar_nuevo_correo(cliente, mensaje_id, usuario):
+    global contador_spam, contador_no_spam  # Acceso a las variables globales
+    try:
+        mensaje_raw = cliente.fetch([mensaje_id], ['RFC822'])[mensaje_id][b'RFC822']
+        mensaje = email.message_from_bytes(mensaje_raw)
+        cuerpo = ''
+
+        if mensaje.is_multipart():
+            for parte in mensaje.walk():
+                if parte.get_content_type() in ['text/plain', 'text/html']:
+                    cuerpo += decodificar_cuerpo(parte)
+        else:
+            cuerpo = decodificar_cuerpo(mensaje)
+
+        # Imprimir contenido del mensaje para depuración
+        print(f"Usuario: {usuario}")
+        print("Mensaje completo:")
+        print(mensaje)
+        print("Cuerpo decodificado y limpio:")
+        print(cuerpo)
+
+        # Clasificar el correo
+        cuerpo_correo_limpio = re.sub(r'\s+', ' ', cuerpo)
+        resultado_prediccion = predecir_spam_ham(cuerpo_correo_limpio)
+        print("El correo electrónico se clasifica como:", resultado_prediccion)
+        print("-" * 50)
+
+        if resultado_prediccion == "spam":
+            contador_spam += 1  # Incrementar contador de spam
+            # Mover el correo a la carpeta Junk
+            cliente.copy(mensaje_id, 'Junk')
+            cliente.delete_messages(mensaje_id)
+            cliente.expunge()
+
+            # Enviar notificación al usuario
+            enviar_notificacion(
+                usuario,
+                "Correo Movido a Spam",
+                "Se ha movido un correo a la carpeta de Spam."
+            )
+        else:
+            contador_no_spam += 1  # Incrementar contador de no spam
+            # Eliminar la marca \Seen para dejar el mensaje como no leído
+            cliente.remove_flags(mensaje_id, ['\\Seen'])
+
+        # Imprimir el estado actual de los contadores
+        print(f"Contador de Spam: {contador_spam}")
+        print(f"Contador de No Spam: {contador_no_spam}")
+
+    except Exception as e:
+        print(f"Error al procesar correo {mensaje_id} para {usuario}: {e}")
+
+# Bucle principal para monitorear y procesar nuevos correos
+def monitorear_correos(usuario, contrasena):
+    while True:
+        try:
+            with IMAPClient('mail.utnmail.com', ssl=True) as cliente:
+                cliente.login(usuario, contrasena)
+                cliente.select_folder('INBOX')
+                print(f"Conectado a la cuenta: {usuario}")
+
+                while True:
+                    print(f"Esperando nuevos correos para {usuario}...")
+                    try:
+                        # Espera notificaciones de nuevos correos
+                        cliente.idle()
+                        respuesta = cliente.idle_check(timeout=300)  # Espera hasta 5 minutos
+                        cliente.idle_done()
+
+                        if respuesta:
+                            for evento in respuesta:
+                                if evento[1] == b'EXISTS':  # Nuevo correo detectado
+                                    mensajes_no_leidos = cliente.search(['UNSEEN'])
+                                    if mensajes_no_leidos:
+                                        mensaje_id = mensajes_no_leidos[-1]
+                                        procesar_nuevo_correo(cliente, mensaje_id, usuario)
+                    except Exception as e:
+                        print(f"Error en IMAP IDLE para {usuario}: {e}")
+                        time.sleep(10)
+                        break
+        except Exception as e:
+            print(f"Error general para {usuario}: {e}")
+            time.sleep(30)
+
+# Procesar correos para todos los usuarios usando hilos
+def procesar_correos():
+    hilos = []
+    for credenciales in usuarios:
+        usuario = credenciales["usuario"]
+        contrasena = credenciales["contrasena"]
+        hilo = threading.Thread(target=monitorear_correos, args=(usuario, contrasena))
+        hilo.start()
+        hilos.append(hilo)
+
+    for hilo in hilos:
+        hilo.join()
+
+# Ejecutar el procesamiento de correos
+if __name__ == "__main__":
+    procesar_correos()
