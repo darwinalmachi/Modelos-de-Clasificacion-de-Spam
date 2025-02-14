@@ -1,0 +1,137 @@
+import random
+
+# Plantillas de mensajes de spam con mayor variabilidad
+spam_templates = [
+    "Win a {prize}! Text {keyword} to {number} for details! {terms}",
+    "Get a {prize}! Text {keyword} to {number} to claim yours. {terms}",
+    "Limited offer! Text {keyword} to {number} to win {prize}. {terms}",
+    "Exclusive deal! Text {keyword} to {number} for a chance to win {prize}!",
+    "You’ve been selected! Text {keyword} to {number} and claim your {prize}. {terms}",
+    "Congratulations! You’ve won a {prize}! Text {keyword} to {number} now! {terms}",
+    "Act fast! Limited spots for {prize}! Text {keyword} to {number} to enter. {terms}",
+    "Claim your free {prize} now! Text {keyword} to {number} before time runs out!",
+    "Unbelievable! You can win {prize}! Just text {keyword} to {number} now! {terms}",
+    "VIP exclusive! Text {keyword} to {number} to unlock your {prize}. {terms}",
+    "Mega giveaway! Win {prize} by texting {keyword} to {number}! Limited time only!",
+    "Feeling lucky? Text {keyword} to {number} and you could win {prize}! {terms}",
+    "Special surprise! You might win {prize}! Text {keyword} to {number} now!",
+]
+
+# Listas de palabras clave, premios y términos aleatorios
+prizes = [
+    "luxury cruise", "free laptop", "$1000 cash", "free gym membership", "free coffee for a year",
+    "designer handbag", "new car", "pizza voucher", "$500 cash", "gaming console",
+    "concert tickets", "weekend getaway", "free e-book", "shopping spree", "movie streaming for a year",
+    "$200 cash", "travel voucher", "airline tickets", "VIP event tickets", "coffee mug",
+    "spa day for two", "$1000 gift card", "phone credit", "big screen TV",
+    "free groceries for a month", "$25 gift card", "luxury watch", "theme park tickets",
+    "vacation package", "family trip", "free furniture", "home appliances",
+    "mystery gift", "brand-new smartphone", "cinema tickets", "smart TV",
+    "modern coffee machine", "free Netflix for a year", "theater tickets",
+    "festival tickets", "beach vacation", "gym membership",
+    "smartwatch", "zoo tickets", "Italy trip", "dream holiday",
+    "exclusive yacht party", "premium shopping voucher", "free Amazon Echo",
+    "high-end DSLR camera", "designer sunglasses", "gaming laptop",
+]
+
+keywords = [
+    "WIN", "CASH", "FREE", "PRIZE", "LUCKY", "GIFT", "TRIP", "VACATION", "SHOP",
+    "GAMER", "SPORTS", "MOVIE", "FITNESS", "MUSIC", "GOLD", "SPA", "TICKETS",
+    "VIP", "HOTEL", "FASHION", "FAMILY", "WINBIG", "FOODIE", "LUXURY", "RELAX",
+    "TRAVEL", "NEWCAR", "GADGET", "BIGWIN", "WINNOW", "FUN", "CLAIM", "EXCLUSIVE",
+    "EVENT", "SMART", "FUEL", "HOLIDAY", "MYSTERY", "RETREAT", "SHOPPING",
+    "FLY", "PARTY", "EXPERIENCE", "CREDIT", "SUPER", "VOUCHER", "WINNER",
+    "FLASHSALE", "BESTDEAL", "SURPRISE", "FREEMONEY", "BONUS", "SPECIAL",
+    "INSTANT", "NEW", "HURRY", "LIMITED", "JACKPOT", "MEGAWIN", "TOP",
+    "PREMIUM", "ELITE", "TOPGIFT", "TREAT", "DREAMBIG", "GOLDEN", "SUPERDEAL",
+    "EASYMONEY", "NOW", "FAST", "GETNOW", "CHANCE", "FORTUNE", "GRAND",
+]
+
+numbers = [str(random.randint(10000, 99999)) for _ in range(100)]
+terms_list = [
+    "T&Cs apply. 18+ only.", "Terms apply.", "Limited time only!", "Act fast!",
+    "Valid for a short period only!", "Only available to first 100 entries!", "Offer expires soon!",
+]
+
+def generate_spam_message(existing_messages):
+    """Genera un mensaje de spam aleatorio sin repetir."""
+    while True:
+        template = random.choice(spam_templates)
+        prize = random.choice(prizes)
+        keyword = random.choice(keywords)
+        number = random.choice(numbers)
+        terms = random.choice(terms_list)
+        message = template.format(prize=prize, keyword=keyword, number=number, terms=terms)
+        if message not in existing_messages:
+            existing_messages.add(message)
+            return message
+
+# Generar y mostrar ejemplos de spam sin repetidos
+existing_messages = set()
+for _ in range(400):
+    print(generate_spam_message(existing_messages))
+    print("-")
+
+import random
+
+# Plantillas de mensajes de spam con mayor variabilidad
+spam_templates = [
+    "¡Felicidades! Has ganado {prize}. Envía {keyword} al {number} para reclamarlo.",
+    "¡Oferta exclusiva! Envía {keyword} al {number} y obtén {prize}.",
+    "¡Tienes un regalo especial! Envía {keyword} al {number} y descúbrelo.",
+    "¡Ganaste {prize}! Envía {keyword} al {number} ahora.",
+    "¡Tu premio te espera! Envía {keyword} al {number} y gánalo.",
+    "¡No pierdas esta oportunidad! Envía {keyword} al {number} y consigue {prize}.",
+    "¡Solo hoy! Reclama {prize} enviando {keyword} al {number}.",
+    "¡Sorpresa especial para ti! Escribe {keyword} al {number} y descúbrelo.",
+    "¡Tienes suerte! {prize} puede ser tuyo si envías {keyword} al {number}.",
+    "¡Última oportunidad! Envía {keyword} al {number} y gana {prize}.",
+    "¡Atención! {prize} está reservado para ti. Envía {keyword} al {number} ahora.",
+    "¡Eres un ganador! Reclama {prize} enviando {keyword} al {number} antes de que termine.",
+    "¡Tienes un cupón especial! Envía {keyword} al {number} y úsalo ahora.",
+    "¡Gran noticia! Has sido seleccionado para recibir {prize}. Escribe {keyword} al {number}.",
+    "¡No lo creerás! {prize} está esperándote. Responde con {keyword} al {number} para recibirlo.",
+]
+
+# Listas de palabras clave, premios y términos aleatorios
+prizes = [
+    "un viaje a Cancún", "un teléfono inteligente", "$500 en efectivo", "una cena de lujo", "una suscripción de Netflix por un año",
+    "una consola de videojuegos", "boletos para un concierto", "un televisor 4K", "una cafetera moderna", "una bicicleta de montaña",
+    "un smartwatch", "un vale de compras de $100", "entradas para el cine", "una tableta de última generación", "un fin de semana en un resort",
+    "un año de gimnasio gratis", "una tarjeta de regalo de Amazon", "un dron de alta tecnología", "una suscripción premium de Spotify",
+]
+
+keywords = [
+    "PREMIO", "GANAR", "REGALO", "SORTEO", "LUJO", "OFERTA", "GRATIS", "BONO", "VIP", "EXCLUSIVO", "INCREIBLE",
+    "PROMO", "AHORA", "DESCUBRE", "LIMITADO", "SORTEOYA", "FELICIDAD", "SUERTE", "GANA", "PREMIOS", "SORPRESA",
+    "RECLAMAR", "GOLD", "FESTIVAL", "SMART", "TELE", "DESCUEENTO", "DINERO", "VALE", "VACACIONES", "MAGICO",
+    "ENTRADAS", "VIAJE", "EXPERIENCIA", "NUEVO", "MEGAPROMO", "AHORRO", "INSTANTE", "CHANCE", "NOVEDAD", "UNICO",
+    "RECOMPENSA", "SUPEROFERTA", "ACTIVA", "GIFT", "PREMIUM", "CLUBVIP", "PROMOCION", "AFORTUNADO",
+]
+
+numbers = [str(random.randint(10000, 99999)) for _ in range(100)]
+terms_list = [
+    "¡Solo por tiempo limitado!", "Aplican términos y condiciones.", "Oferta válida hasta agotar existencias.", "¡Apresúrate!",
+    "Sujeto a disponibilidad.", "Solo los primeros 100 en responder ganarán.", "No dejes pasar esta oferta exclusiva.",
+    "¡Responde antes de la medianoche para reclamar!", "Oferta válida solo para hoy.", "Gana premios increíbles sin esfuerzo.",
+]
+
+def generate_spam_message(existing_messages):
+    """Genera un mensaje de spam aleatorio sin repetir."""
+    while True:
+        template = random.choice(spam_templates)
+        prize = random.choice(prizes)
+        keyword = random.choice(keywords)
+        number = random.choice(numbers)
+        terms = random.choice(terms_list)
+        message = template.format(prize=prize, keyword=keyword, number=number, terms=terms)
+        if message not in existing_messages:
+            existing_messages.add(message)
+            return message
+
+# Generar y mostrar ejemplos de spam sin repetidos
+existing_messages = set()
+for _ in range(80):
+    print(generate_spam_message(existing_messages))
+    print("-")
+
