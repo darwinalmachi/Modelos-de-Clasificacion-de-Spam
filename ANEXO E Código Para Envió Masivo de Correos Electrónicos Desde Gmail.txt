@@ -1,0 +1,50 @@
+import smtplib
+import time
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# Datos del remitente y receptor
+sender_email = ""
+receiver_email = ""
+password = ""  # Asegúrate de usar una contraseña de aplicación si tienes activada la verificación en dos pasos
+
+# Lista de los mensajes
+messages = [
+
+"Mensaje 1",
+"Mensaje 2",
+"Mensaje 3", ...
+
+]
+
+# Establecer conexión con el servidor SMTP de Gmail
+def send_email(subject, body):
+    try:
+        # Establecer conexión SMTP
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.login(sender_email, password)
+
+        # Crear el mensaje
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = receiver_email
+        msg['Subject'] = subject
+
+        # Agregar el contenido del mensaje en texto plano
+        msg.attach(MIMEText(body, 'plain'))
+
+        # Enviar el correo
+        server.sendmail(sender_email, receiver_email, msg.as_string())
+        print(f"Correo {subject} enviado correctamente.")
+
+        # Cerrar la conexión
+        server.quit()
+    except Exception as e:
+        print(f"Error al enviar el correo: {e}")
+
+# Enviar los correos con intervalos de 15 segundos
+for i, message in enumerate(messages, start=1751):
+    subject = f"Mensaje {i}"
+    body = message
+    send_email(subject, body)
+    time.sleep(15)  # Esperar 15 segundos antes de enviar el siguiente correo
