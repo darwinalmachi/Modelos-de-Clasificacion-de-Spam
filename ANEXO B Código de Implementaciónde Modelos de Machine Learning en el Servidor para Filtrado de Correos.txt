@@ -1,14 +1,18 @@
+# Importación de librerías necesarias 
 import base64
 import email
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 from sklearn.feature_extraction.text import TfidfVectorizer
 import re
 from joblib import load
 from imapclient import IMAPClient
 import threading
 import time
+import os
 
 # Cargar los modelos y el vectorizador
 clasificador_knn = load('C:/Users/HP/Desktop/modelos/modelo_nb.pkl')
@@ -16,7 +20,7 @@ tfidf_vectorizer = load('c:/Users/HP/Desktop/modelos/vectorizador_tfidf.pkl')
 
 # Lista de usuarios y contraseñas
 usuarios = [
-    {"usuario": "darwin@utnmail.com", "contrasena": "Darwin130799"},
+    {"usuario": "diego@utnmail.com", "contrasena": "Diego130799"},
     {"usuario": "carlos@utnmail.com", "contrasena": "Carlos130799"},
     {"usuario": "juan@utnmail.com", "contrasena": "Juan130799"},
 ]
@@ -31,17 +35,34 @@ def predecir_spam_ham(mensaje):
     prediccion = clasificador_knn.predict(mensaje_transformado)
     return "spam" if prediccion == 1 else "no spam"
 
-# Función para enviar una notificación por correo electrónico usando SMTP
-def enviar_notificacion(correo_destino, asunto, mensaje):
+# Función para enviar una notificación con el archivo adjunto
+def enviar_notificacion(correo_destino, asunto, mensaje, remitente, cuerpo_spam=None):
     correo_origen = "admin@utnmail.com"
     contrasena = "Darwin130799"
 
+    # Crear el mensaje de correo
     msg = MIMEMultipart()
     msg['From'] = correo_origen
     msg['To'] = correo_destino
     msg['Subject'] = asunto
+    mensaje_completo = f"{mensaje}\n\nCorreo del remitente: {remitente}"
+    msg.attach(MIMEText(mensaje_completo, 'plain'))
 
-    msg.attach(MIMEText(mensaje, 'plain'))
+    # Si hay un mensaje de spam, adjuntarlo en un archivo de texto
+    if cuerpo_spam:
+        nombre_archivo = "mensaje_spam.txt"
+        with open(nombre_archivo, "w", encoding="utf-8") as archivo:
+            archivo.write(cuerpo_spam)
+        
+        with open(nombre_archivo, "rb") as adjunto:
+            parte = MIMEBase("application", "octet-stream")
+            parte.set_payload(adjunto.read())
+            encoders.encode_base64(parte)
+            parte.add_header("Content-Disposition", f"attachment; filename={nombre_archivo}")
+            msg.attach(parte)
+
+        # Eliminar el archivo temporal después de adjuntarlo
+        os.remove(nombre_archivo)
 
     try:
         servidor = smtplib.SMTP('smtp.utnmail.com', 587)
@@ -60,7 +81,7 @@ def decodificar_cuerpo(parte):
             return base64.b64decode(parte.get_payload()).decode('utf-8', errors='ignore')
         elif parte.get_content_type() == 'text/html':
             texto_html = parte.get_payload(decode=True).decode('utf-8', errors='ignore')
-            return re.sub('<[^<]+?>', '', texto_html)  # Eliminar etiquetas HTML
+            return re.sub('<[^<]+?>', '', texto_html)
         else:
             return parte.get_payload(decode=True).decode('utf-8', errors='ignore')
     except Exception as e:
@@ -69,10 +90,11 @@ def decodificar_cuerpo(parte):
 
 # Función para procesar un nuevo correo
 def procesar_nuevo_correo(cliente, mensaje_id, usuario):
-    global contador_spam, contador_no_spam  # Acceso a las variables globales
+    global contador_spam, contador_no_spam
     try:
         mensaje_raw = cliente.fetch([mensaje_id], ['RFC822'])[mensaje_id][b'RFC822']
         mensaje = email.message_from_bytes(mensaje_raw)
+        remitente = mensaje['From']
         cuerpo = ''
 
         if mensaje.is_multipart():
@@ -82,38 +104,36 @@ def procesar_nuevo_correo(cliente, mensaje_id, usuario):
         else:
             cuerpo = decodificar_cuerpo(mensaje)
 
-        # Imprimir contenido del mensaje para depuración
         print(f"Usuario: {usuario}")
+        print(f"Remitente: {remitente}")
         print("Mensaje completo:")
         print(mensaje)
         print("Cuerpo decodificado y limpio:")
         print(cuerpo)
 
-        # Clasificar el correo
         cuerpo_correo_limpio = re.sub(r'\s+', ' ', cuerpo)
         resultado_prediccion = predecir_spam_ham(cuerpo_correo_limpio)
         print("El correo electrónico se clasifica como:", resultado_prediccion)
         print("-" * 50)
 
         if resultado_prediccion == "spam":
-            contador_spam += 1  # Incrementar contador de spam
-            # Mover el correo a la carpeta Junk
+            contador_spam += 1
             cliente.copy(mensaje_id, 'Junk')
             cliente.delete_messages(mensaje_id)
             cliente.expunge()
 
-            # Enviar notificación al usuario
+            # Enviar la notificación con el correo del remitente
             enviar_notificacion(
                 usuario,
                 "Correo Movido a Spam",
-                "Se ha movido un correo a la carpeta de Spam."
+                "Se ha movido un correo a la carpeta de Spam.",
+                remitente,
+                cuerpo_spam=cuerpo
             )
         else:
-            contador_no_spam += 1  # Incrementar contador de no spam
-            # Eliminar la marca \Seen para dejar el mensaje como no leído
+            contador_no_spam += 1
             cliente.remove_flags(mensaje_id, ['\\Seen'])
 
-        # Imprimir el estado actual de los contadores
         print(f"Contador de Spam: {contador_spam}")
         print(f"Contador de No Spam: {contador_no_spam}")
 
@@ -132,14 +152,13 @@ def monitorear_correos(usuario, contrasena):
                 while True:
                     print(f"Esperando nuevos correos para {usuario}...")
                     try:
-                        # Espera notificaciones de nuevos correos
                         cliente.idle()
-                        respuesta = cliente.idle_check(timeout=300)  # Espera hasta 5 minutos
+                        respuesta = cliente.idle_check(timeout=300)
                         cliente.idle_done()
 
                         if respuesta:
                             for evento in respuesta:
-                                if evento[1] == b'EXISTS':  # Nuevo correo detectado
+                                if evento[1] == b'EXISTS':
                                     mensajes_no_leidos = cliente.search(['UNSEEN'])
                                     if mensajes_no_leidos:
                                         mensaje_id = mensajes_no_leidos[-1]
