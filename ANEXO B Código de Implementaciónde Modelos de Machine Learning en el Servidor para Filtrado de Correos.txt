@@ -20,9 +20,9 @@ tfidf_vectorizer = load('c:/Users/HP/Desktop/modelos/vectorizador_tfidf.pkl')
 
 # Lista de usuarios y contraseñas
 usuarios = [
-    {"usuario": "diego@utnmail.com", "contrasena": "Diego130799"},
-    {"usuario": "carlos@utnmail.com", "contrasena": "Carlos130799"},
-    {"usuario": "juan@utnmail.com", "contrasena": "Juan130799"},
+    {"usuario": "diego@utnmail.com", "contrasena": "Diego123456"},
+    {"usuario": "carlos@utnmail.com", "contrasena": "Carlos123456"},
+    {"usuario": "juan@utnmail.com", "contrasena": "Juan123456"},
 ]
 
 # Contadores globales
@@ -38,7 +38,7 @@ def predecir_spam_ham(mensaje):
 # Función para enviar una notificación con el archivo adjunto
 def enviar_notificacion(correo_destino, asunto, mensaje, remitente, cuerpo_spam=None):
     correo_origen = "admin@utnmail.com"
-    contrasena = "Darwin130799"
+    contrasena = "Darwin123456"
 
     # Crear el mensaje de correo
     msg = MIMEMultipart()
